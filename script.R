@@ -26,3 +26,5 @@ prec_avg_can <- cellStats(prec_can2, stat="mean")
 prec_avg_can
 mean(prec_avg_can)
 mean(prec_avg)
+
+plot(mean(prec_avg))
