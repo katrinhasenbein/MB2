@@ -1,4 +1,5 @@
-difftime(("2017-12-24"), Sys.Date(), units="days")
+
+plotdifftime(("2017-12-24"), Sys.Date(), units="days")
 
 install.packages("raster")
 library(raster)
@@ -28,3 +29,4 @@ mean(prec_avg_can)
 mean(prec_avg)
 
 plot(mean(prec_avg))
+plot(mean(prec_avg_can))
