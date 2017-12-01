@@ -1,0 +1,138 @@
+---
+title: "sf_packages"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+#Introduction into the R "sf package"
+
+## What is the package about?
+####What are simple features?
+feature = real world *thing*
+set of features can form a single feature
+characteristics of features:
+- geometry (coordinate points in 1- to 4D)
+    * longitude
+    * latitude
+    * altitude
+    * measure (e.g. time, error of coordinates)
+- attributes
+**simple features** have spatial and non-spatial attributes
+
+####feature types
+- point
+- linestring
+- polygon
+- multipoint
+- multilinestring
+- multipolygon
+- geometrycollection
+- ...
+
+## Organisation of sf in R
+Package sf represents sf as native R objects
+(<--> sp: defines new classes)
+--> simple data structures
+--> attributes and geometry stored in data.frame (geometry in list-column)
+
+--> How can real world objects be represented on computers?
+--> spatial geometry of the obkects
+--> storing methods, geometrical operations
+
+- functionality similar to *sp*
+- but no new classes (S4 classes in sp) defined, it extends data.frames (**native** classes!)
+
+##Potential of sf to replace sp
+- simpler data structures
+- simpler handling of CRS
+- ability to return distance or area values with proper units (meter, feet or US feet)
+- support for geosphere functions to compute distances or areas for longitude/latitude data
+
+## Get started with sf
+```{r}
+#install the package
+install.packages("sf")
+library(sf)
+#install development versions
+library(devtools)
+install_github("r-spatial/sf")
+```
+
+## Some useful commands
+```{r}
+#methods of sf objects
+methods(class = "sf")
+
+#convert sf object to data.frame
+no_sf <- as.data.frame(sf_object)
+
+#access geometry list-column
+sf_object$geom
+sf_object [[15]]
+st_geometry(sf_object)
+
+#methods for geometry list-columns (sfc)
+methods(class = "sfc")
+
+#attributes of sfc
+attributes(st_geometry(sf_object))
+```
+
+sfc object: simple feature geometry list-column
+sfg object: simple feature geometry --> geometry for a single feature
+
+
+## Creating some sf objects
+```{r}
+p <- rbind(c(3.2,4), c(3,4.6), c(3.8,4.4), c(3.5,3.8), c(3.4,3.6), c(3.9,4.5))
+(mp <- st_multipoint(p))
+## MULTIPOINT 
+s1 <- rbind(c(0,3),c(0,4),c(1,5),c(2,5))
+(ls <- st_linestring(s1))
+## LINESTRING 
+s2 <- rbind(c(0.2,3), c(0.2,4), c(1,4.8), c(2,4.8))
+s3 <- rbind(c(0,4.4), c(0.6,5))
+(mls <- st_multilinestring(list(s1,s2,s3)))
+## MULTILINESTRING 
+p1 <- rbind(c(0,0), c(1,0), c(3,2), c(2,4), c(1,4), c(0,0))
+p2 <- rbind(c(1,1), c(1,2), c(2,2), c(1,1))
+pol <-st_polygon(list(p1,p2))
+p3 <- rbind(c(3,0), c(4,0), c(4,1), c(3,1), c(3,0))
+p4 <- rbind(c(3.3,0.3), c(3.8,0.3), c(3.8,0.8), c(3.3,0.8), c(3.3,0.3))[5:1,]
+p5 <- rbind(c(3,3), c(4,2), c(4,3), c(3,3))
+(mpol <- st_multipolygon(list(list(p1,p2), list(p3,p4), list(p5))))
+## MULTIPOLYGON 
+(gc <- st_geometrycollection(list(mp, mpol, ls)))
+## GEOMETRYCOLLECTION 
+par(mfrow = c(2,3))
+plot(mp); plot(ls); plot(mls); plot(pol); plot(mpol); plot(gc)
+
+```
+
+
+
+## Notes
+
+- all command starting with st_ (spatial and temporal)
+- Bullet 2
+- Bullet 3
+
+## Slide with R Output
+
+```{r cars, echo = TRUE}
+summary(cars)
+```
+
+## Slide with Plot
+
+```{r pressure}
+plot(pressure)
+```
+
+
+## References
+- https://github.com/r-spatial/sf
+- https://www.r-consortium.org/blog/2017/01/03/simple-features-now-on-cran
