@@ -112,6 +112,30 @@ plot(mp); plot(ls); plot(mls); plot(pol); plot(mpol); plot(gc)
 
 ```
 
+## Reading and writing
+```{r}
+filename <- system.file("file.shp", package = "sf")
+data <- st_read(filename)
+st_write(data, "file.shp") #ESRI Shapefile
+```
+
+
+## CRS transformations
+```{r}
+data_mercator <- st_transform(data, 3857) #EPSG:3857
+```
+
+## geometrical operations
+- measuring
+  * st_distance()
+  * st_area()
+- test topology
+  * st_intersects()
+  * st_overlaps()
+- return new geometries
+  * st_buffer()
+  * st_union()
+
 
 
 ## Notes
