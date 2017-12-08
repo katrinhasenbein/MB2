@@ -5,6 +5,7 @@ output: ioslides_presentation
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+setwd("C:/Users/katri/Documents/Uni/MB2 Introduction to Programming and Geostatistics/Git")
 ```
 
 #Introduction into the R "sf package"
@@ -39,11 +40,11 @@ Package sf represents sf as native R objects
 --> attributes and geometry stored in data.frame (geometry in list-column)
 
 --> How can real world objects be represented on computers?
---> spatial geometry of the obkects
+--> spatial geometry of the objects
 --> storing methods, geometrical operations
 
 - functionality similar to *sp*
-- but no new classes (S4 classes in sp) defined, it extends data.frames (**native** classes!)
+- but no new classes defined, it extends data.frames (**native** classes!)
 
 ##Potential of sf to replace sp
 - simpler data structures
@@ -55,11 +56,21 @@ Package sf represents sf as native R objects
 ```{r}
 #install the package
 install.packages("sf")
-library(sf)
 #install development versions
 library(devtools)
 install_github("r-spatial/sf")
+library(sf)
 ```
+
+##Example data
+```{r}
+#read sf objects with st_read
+#example: North Carolina counties
+nc <- st_read(system.file("shape/nc.shp", package = "sf"))
+class(nc)
+head(nc)
+```
+
 
 ## Some useful commands
 ```{r}
@@ -67,22 +78,28 @@ install_github("r-spatial/sf")
 methods(class = "sf")
 
 #convert sf object to data.frame
-no_sf <- as.data.frame(sf_object)
+nc.no_sf <- as.data.frame(nc)
+class(nc.no_sf)
 
 #access geometry list-column
-sf_object$geom
-sf_object [[15]]
-st_geometry(sf_object)
+(nc_geom <- st_geometry(nc))
+nc_geom [[1]]
 
 #methods for geometry list-columns (sfc)
 methods(class = "sfc")
 
 #attributes of sfc
-attributes(st_geometry(sf_object))
+attributes(nc_geom)
 ```
 
 sfc object: simple feature geometry list-column
 sfg object: simple feature geometry --> geometry for a single feature
+
+##Plot the data
+```{r}
+par(mar=c(0,0,1,0))
+plot(nc[1])
+```
 
 
 ## Creating some sf objects
@@ -108,55 +125,166 @@ p5 <- rbind(c(3,3), c(4,2), c(4,3), c(3,3))
 (gc <- st_geometrycollection(list(mp, mpol, ls)))
 ## GEOMETRYCOLLECTION 
 par(mfrow = c(2,3))
-plot(mp); plot(ls); plot(mls); plot(pol); plot(mpol); plot(gc)
+plot(mp, main = "Multipoint"); plot(ls, main = "Linestring"); plot(mls, main = "Multilinestring"); plot(pol, main = "Polygon"); plot(mpol, main = "Multipoygon"); plot(gc, main = "Geometrycollection")
 
 ```
 
 ## Reading and writing
 ```{r}
-filename <- system.file("file.shp", package = "sf")
-data <- st_read(filename)
-st_write(data, "file.shp") #ESRI Shapefile
+#read sf object with st_read
+filename <-  system.file("shape/nc.shp", package = "sf") #ESRI Shapefile
+file <- st_read(filename, quiet = TRUE)
+st_write(nc, "nc.shp", driver = "ESRI Shapefile")
 ```
+--> multiple formats possible (also lists with several layers)
+--> reading and writing directly from ant to spatial databases possible
 
 
-## CRS transformations
+
+
+
+# Manipulating simple features geometries
+## Type transformations
+st_cast: 
+- single geometries into multi-geometries or vice versa
+- geometrycollection into its component (if length = 1)
+
+##Affine transformations
+f(x) = xA + b
+--> flatten, scale, rotate and translate
+
 ```{r}
-data_mercator <- st_transform(data, 3857) #EPSG:3857
+#rotate 90% clockwise around centroid
+#shrink to 75% of their originial size
+
+cntrd = st_centroid(nc_geom)
+rot = function(a) matrix(c(cos(a), sin(a), -sin(a), cos(a)),2,2)
+nc_geom2 = (nc_geom - cntrd)*rot(pi/2) * .75+cntrd
+plot(nc_geom, border = "grey"); plot(nc_geom2, add=TRUE)
+```
+## Transformations and conversions
+```{r}
+#CRS transformation
+nc.web_mercator <- st_transform(nc, 3857)
+#Conversion to sp object
+nc.sp <- as(nc, "Spatial")
 ```
 
 ## geometrical operations
-- measuring
-  * st_distance()
-  * st_area()
-- test topology
-  * st_intersects()
-  * st_overlaps()
-- return new geometries
-  * st_buffer()
-  * st_union()
 
-
-
-## Notes
-
-- all command starting with st_ (spatial and temporal)
-- Bullet 2
-- Bullet 3
-
-## Slide with R Output
-
-```{r cars, echo = TRUE}
-summary(cars)
+```{r}
+b0 = st_polygon(list(rbind(c(-1,-1), c(1,-1), c(1,1), c(-1,1), c(-1,-1))))
+b1 = b0 + 2
+b2 = b0 + c(-0.2, 2)
+x = st_sfc(b0, b1, b2)
+a0 = b0 * 0.8
+a1 = a0 * 0.5 + c(2, 0.7)
+a2 = a0 + 1
+a3 = b0 * 0.5 + c(2, -0.5)
+y = st_sfc(a0,a1,a2,a3)
+plot(x, border = 'red');
+plot(y, border = 'green', add = TRUE)
 ```
 
-## Slide with Plot
-
-```{r pressure}
-plot(pressure)
+## Measuring
+```{r}
+#area of polygons
+st_area(x)
+#length of geometries
+st_length(st_sfc(st_linestring(rbind(c(0,0), c(1,1), c(1,2))), st_linestring(rbind(c(0,0), c(1,0)))))
 ```
+
+```{r}
+#shortest distance matrix between geometries
+st_distance(x,y)
+```
+
+
+
+## Test topology
+```{r}
+#check if geometries are topologically valid
+b1 = st_polygon(list(rbind(c(-1,-1), c(1,-1), c(1,1), c(0,-1), c(-1,-1))))
+st_is_valid(st_sfc(b0, b1))
+plot(b0)
+plot(b1)
+```
+
+
+
+```{r}
+#intersection between objects
+st_intersects(x,y)
+st_intersects(x,y, sparse = FALSE)
+```
+other operations:
+- st_disjoint
+- st_touches
+- st_crosses
+- st_within
+- st_contains
+- st_overlaps
+- st_covers
+- ...
+
+##return new geometries
+```{r}
+#union objects
+u = st_union(x)
+plot(u)
+```
+
+```{r}
+#buffer objects
+plot(st_buffer(u, 0.2)); plot(u, border = "red", add = TRUE)
+```
+
+```{r}
+plot(st_convex_hull(u))
+```
+
+```{r}
+plot(x); plot(st_centroid(u), col = "red",  add = TRUE)
+```
+
+```{r}
+plot(x); plot(y, add = TRUE);plot(st_intersection(st_union(x), st_union(y)), add = TRUE, col = "red")
+```
+other operations
+- st_difference
+- st_segmentize
+- st_polygonize
+- ...
 
 
 ## References
 - https://github.com/r-spatial/sf
 - https://www.r-consortium.org/blog/2017/01/03/simple-features-now-on-cran
+
+
+# Manipulation simple features
+- subset features (using []) 
+- aggregating feature sets (aggregate())
+- joining two feature sets beased on attributes or feature geometry (merge(), st_join())
+
+# Plotting Simple Features
+##Geometry only
+```{r}
+plot(st_geometry(nc))
+```
+
+##Geometry with attributes
+```{r}
+plot(nc)
+```
+
+## Visualising
+- color keys
+- class intervals
+- display axes
+
+##Plotting with other packages
+- st_as_grob ("gaphic objects")
+- ggplot2
+- mapview
+- tmap
