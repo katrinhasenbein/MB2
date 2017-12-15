@@ -1,12 +1,13 @@
 ---
-title: "Introduction into the R \n 'sf package'"
+title: "Introduction into the R 'sf package'"
 output: ioslides_presentation
 widescreen: yes
+geometry: margin = 1cm
 ---
 
 ```{r setup, include=FALSE}
 library(knitr)
-opts_chunk$set(comment = "", tidy = TRUE) 
+opts_chunk$set(comment = "", tidy = TRUE)
 #setwd("C:/Users/katri/Documents/Uni/MB2 Introduction to Programming and Geostatistics/Git")
 ```
 
@@ -16,7 +17,9 @@ opts_chunk$set(comment = "", tidy = TRUE)
 ###What are simple features?
 feature = real world *thing*  
 set of features can form a single feature
-characteristics of features:  
+characteristics of features: 
+
+
 - geometry (coordinate points in 1- to 4D)
   * longitude
   * latitude
@@ -82,6 +85,24 @@ plot(nc[1])
 head(nc)
 ```
 
+##
+```{r}
+#access geometry list-column
+nc_geom <- st_geometry(nc)
+
+nc_geom [[1]]
+
+```
+
+
+*sfc* object: simple feature geometry list-column  
+*sfg* object: simple feature geometry --> geometry for a single feature
+
+##
+```{r}
+#attributes of sfc
+attributes(nc_geom)
+```
 
 
 ## Some useful commands
@@ -92,31 +113,17 @@ methods(class = "sf")
 
 ##
 ```{r}
-#convert sf object to data.frame
-nc.no_sf <- as.data.frame(nc)
-class(nc.no_sf)
-
-#access geometry list-column
-nc_geom <- st_geometry(nc)
-```
-
-##
-```{r}
-nc_geom [[1]]
-#attributes of sfc
-attributes(nc_geom)
-```
-
-##
-```{r}
 #methods for geometry list-columns (sfc)
 methods(class = "sfc")
 ```
 
-##
-*sfc* object: simple feature geometry list-column  
-*sfg* object: simple feature geometry --> geometry for a single feature
 
+##
+```{r}
+#convert sf object to data.frame
+nc.no_sf <- as.data.frame(nc)
+class(nc.no_sf)
+```
 
 
 ## Creating some sf objects
@@ -204,8 +211,16 @@ plot(nc_geom, border = "grey"); plot(nc_geom2, add=TRUE)
 ```{r}
 #CRS transformation
 nc.web_mercator <- st_transform(nc, 3857)
-#Conversion to sp object
+st_crs(nc.web_mercator)
+```
+
+##
+```{r}
+#Conversion from/to sp object
 nc.sp <- as(nc, "Spatial")
+class(nc.sp)
+nc.sf <- as(nc.sp, "sf")
+class(nc.sf)
 ```
 
 ## Geometrical operations
@@ -284,13 +299,13 @@ st_intersects(x,y, sparse = FALSE)
 - st_covers
 - ...
 
-##
+## Return new geometries
 ```{r}
 #union objects
 u = st_union(x)
 plot(u)
 ```
---> save new geometries
+  
 
 ##
 ```{r}
@@ -300,7 +315,7 @@ plot(st_buffer(u, 0.2)); plot(u, border = "red", add = TRUE)
 
 ##
 ```{r}
-plot(st_convex_hull(u))
+plot(st_convex_hull(u)); plot(u*0.99, border = "grey", add = TRUE)
 ```
 
 ##
