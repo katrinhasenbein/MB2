@@ -302,7 +302,7 @@ other operations
 
 
 
-# Manipulation simple features
+# Manipulating simple features
 ##
 - subset features (using []) 
 - aggregating feature sets (aggregate())
