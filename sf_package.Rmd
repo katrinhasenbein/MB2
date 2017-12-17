@@ -13,21 +13,23 @@ setwd("C:/Users/katri/Documents/Uni/MB2 Introduction to Programming and Geostati
 #Introduction into the R   "sf package"
 
 ## What is the package about?
-###What are simple features?
-feature = real world *thing*  
-set of features can form a single feature
+sf = simple features or simple features access
+### What are simple features?
+feature = real world *thing* (e.g. tree)
+set of features can form a single feature ( e.g. forest)
+
 characteristics of features:  
-- geometry (coordinate points in 1- to 4D)
-    * longitude
-    * latitude
-    * altitude
-    * measure (e.g. time, error of coordinates)
-- attributes  
+- geometry (spatial, dimensions: 1D to 4D)
+    * longitude x
+    * latitude y
+    * altitude z
+    * measure m (e.g. time of measurement, error of coordinates)
+- attributes (non-spatial) 
     
 **simple features** have spatial and non-spatial attributes
 
 ##
-###feature types
+### simple feature geometry types
 - point
 - linestring
 - polygon
@@ -40,14 +42,19 @@ characteristics of features:
 ## Organisation of sf in R
 Package sf represents simple features as native R objects  
 (<--> sp: defines new classes)  
---> simple data structures  
+--> simple data structure (three classes exist: sf, sfc, sfg)
 --> attributes and geometry stored in data.frame (geometry in list-column)
-  
+--> all functions and methods in sf that operate on spatial data are prefixed by st_
   
 - functionality similar to *sp*
 - but no new classes defined, it extends data.frames (**native** classes!)
 
-##Potential of sf to replace sp
+## Organisation of sf in R
+sf, sfc and sfg
+# graph
+
+## Potential of sf to replace sp
+> sp has so far lacked a complete implementation of simple features
 - simpler data structures
 - simpler handling of CRS
 - ability to return distance or area values with proper units (meter, feet or US feet)
@@ -63,7 +70,7 @@ install_github("r-spatial/sf", quiet = TRUE)
 library(sf)
 ```
 
-##Example data: North Carolina counties
+## Example data: North Carolina counties
 ```{r}
 #read sf objects with st_read
 nc <- st_read(system.file("shape/nc.shp", package = "sf"))
@@ -127,8 +134,11 @@ s1 <- rbind(c(0,3),c(0,4),c(1,5),c(2,5))
 s2 <- rbind(c(0.2,3), c(0.2,4), c(1,4.8), c(2,4.8))
 s3 <- rbind(c(0,4.4), c(0.6,5))
 (mls <- st_multilinestring(list(s1,s2,s3)))
+```
 
-## MULTIPOLYGON  
+## Creating some sf objects
+```{r}
+## MULTIPOLYGON 
 p1 <- rbind(c(0,0), c(1,0), c(3,2), c(2,4), c(1,4), c(0,0))
 p2 <- rbind(c(1,1), c(1,2), c(2,2), c(1,1))
 pol <-st_polygon(list(p1,p2))
@@ -144,7 +154,9 @@ p5 <- rbind(c(3,3), c(4,2), c(4,3), c(3,3))
 ##
 ```{r}
 par(mfrow = c(2,3))
-plot(mp, main = "Multipoint"); plot(ls, main = "Linestring"); plot(mls, main = "Multilinestring"); plot(pol, main = "Polygon"); plot(mpol, main = "Multipoygon"); plot(gc, main = "Geometrycollection")
+plot(mp, main = "Multipoint"); plot(ls, main = "Linestring"); plot(mls, main = 
+"Multilinestring"); plot(pol, main = "Polygon"); plot(mpol, main = "Multipoygon"); 
+plot(gc, main = "Geometrycollection")
 ```
 
 ## Reading and writing
@@ -301,34 +313,108 @@ other operations
 - ...
 
 
-
 # Manipulating simple features
-##
-- subset features (using []) 
-- aggregating feature sets (aggregate())
-- joining two feature sets beased on attributes or feature geometry (merge(), st_join())
-
-# Plotting Simple Features
-##Geometry only
+## 1 Basics
 ```{r}
-plot(st_geometry(nc))
+library(dplyr)
+nc %>% select(NWBIR74) %>% head(2)
+nc %>% as.data.frame %>% select(NWBIR74) %>% head(2) # drop geometry
+```
+## 2 Subset
+```{r}
+- subsetting sf using [] (...or dplyr)
+nc[1, "NWBIR74", drop = TRUE] # drop geometry
+```
+## 2 Subset
+```{r}
+# use spatial object as row selector, to select features that intersect with another spatial feature
+Ashe = nc[nc$NAME == "Ashe",]
+class(Ashe)
+nc[Ashe,] # subset, which contains each simple feature, with the nc$name == "Ashe"
+nc[Ashe, op = st_touches] # in this version, the default value of op (self-intersection) is included -> results in just three features, not 4 as above (overlapping features don't touch)
+
+nc %>% filter(lengths(st_touches(., Ashe)) > 0) # alternative with dplyr
+?dplyr # Geometries are sticky, use as.data.frame to let dplyr's own methods drop them.
+# See effect of (two) coding alternatives above:
+plot(nc[1]) # indexing - column 1 = attribute area
+plot(nc[Ashe, op = st_touches], col = 'grey', add = TRUE)
 ```
 
-##Geometry with attributes
+## 3 Aggregate
 ```{r}
-plot(nc, max.plot = 6)
+- aggregating sf using aggregate()
+# Task: Compare the fraction of SID of 1974 of the counties that intersect with Ashe to the remaining ones?
+nc <- nc %>% mutate(frac74 = SID74 / BIR74) 
+?mutate # = add new variables (or replace exisiting ones)
+(a <- aggregate(nc[,"frac74"], list(Ashe_nb = lengths(st_intersects(nc, Ashe)) > 0), mean))
+list(Ashe_nb = lengths(st_intersects(nc, Ashe)) > 0)
+plot(a[2], col = c(grey(.8), grey(.5)))
+plot(st_geometry(Ashe), border = '#ff8888', add = TRUE, lwd = 2)
+
+```
+## 4 Join
+```{r}
+Joining two feature sets based on attributes or feature geometry (st_join(), merge())
+
+x = st_sf(a = 1:2, geom = st_sfc(st_point(c(0,0)), st_point(c(1,1)))) # create sf points
+y = data.frame(a = 2:3) # create data.frame
+merge(x, y)
+
+x = st_sf(a = 1:3, geom = st_sfc(st_point(c(1,1)), st_point(c(2,2)), st_point(c(3,3)))) # create three points
+y = st_buffer(x, 0.1) # create buffer
+x
+y
+st_join(x, y) # first argument delivers the attributes + the geometry
+st_join(y, x)
+
+st_join(y, x, join = st_covers) # matches for circles covering a point
 ```
 
-## Visualising
-- color keys
-- class intervals
-- display axes
 
-##Plotting with other packages
-- st_as_grob ("gaphic objects")
-- ggplot2
-- mapview
-- tmap
+# Plotting methods for sf and sfc objects
+## 1 Geometry only: sfc
+```{r}
+plot(st_geometry(nc))  # basic grammar; can be further annotated with colors, symbols, etc.
+plot(st_geometry(nc), col = sf.colors(12, categorical = TRUE), border = 'grey', axes = TRUE)
+lot(st_geometry(st_centroid(nc)), pch = 3, col = 'red', add = TRUE) # adding centroids to plot
+```
+
+## 2 Geometry with attributes: sf
+```{r}
+plot(nc, max.plot = 6) # maximum value of max.plot = 14 in this case
+```
+
+## Visualisation
+```{r}
+(1) color keys
+# In case a single attribute is selected, by default a color key is given
+(2) class intervals
+plot(nc["AREA"], breaks = c(0,.05,.1,.15,.2,.25))
+plot(nc["AREA"], breaks = "quantile")
+# either a numeric vector with the actual breaks, or name of a method accepted by the style argument of classIntervals
+```
+
+## Visualisation
+```{r}
+(3) display axes
+plot(nc["AREA"], key.pos = 1, axes = TRUE, key.size = lcm(1.3))
+# location and size of axes can be defined
+(4) graticules
+usa = st_as_sf(map('usa', plot = FALSE, fill = TRUE))
+laea = st_crs("+proj=laea +lat_0=30 +lon_0=-95") # Lambert equal area
+usa <- st_transform(usa, laea)
+g = st_graticule(usa)
+plot(st_geometry(g), axes = TRUE) # graticules do not reach the plot boundaries, but are cut off at the bounding box of the USA
+plot(usa, graticule = TRUE, key.pos = NULL, axes = TRUE) # plot margins known --> add axes in graticule units
+```
+
+## Plotting with other packages
+```{r}
+e.g. ggplot, mapview, tmap, grid
+
+library(mapview)
+mapview(nc["BIR74"], col.regions = sf.colors(10))
+```
 
 
 ## References
